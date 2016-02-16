@@ -1,8 +1,10 @@
+
+
 # -*- coding: utf-8 -*-
 # transformations.py
 
-# Copyright (c) 2006-2013, Christoph Gohlke
-# Copyright (c) 2006-2013, The Regents of the University of California
+# Copyright (c) 2006-2015, Christoph Gohlke
+# Copyright (c) 2006-2015, The Regents of the University of California
 # Produced at the Laboratory for Fluorescence Dynamics
 # All rights reserved.
 #
@@ -44,13 +46,13 @@ functions to decompose transformation matrices.
 :Organization:
   Laboratory for Fluorescence Dynamics, University of California, Irvine
 
-:Version: 2013.06.29
+:Version: 2015.07.18
 
 Requirements
 ------------
-* `CPython 2.7 or 3.3 <http://www.python.org>`_
-* `Numpy 1.7 <http://www.numpy.org>`_
-* `Transformations.c 2013.01.18 <http://www.lfd.uci.edu/~gohlke/>`_
+* `CPython 2.7 or 3.4 <http://www.python.org>`_
+* `Numpy 1.9 <http://www.numpy.org>`_
+* `Transformations.c 2015.07.18 <http://www.lfd.uci.edu/~gohlke/>`_
   (recommended for speedup of some functions)
 
 Notes
@@ -99,6 +101,13 @@ be specified using a 4 character string or encoded 4-tuple:
     by 'z', or 'z' is followed by 'x'. Otherwise odd (1).
   - repetition : first and last axis are same (1) or different (0).
   - frame : rotations are applied to static (0) or rotating (1) frame.
+
+Other Python packages and modules for 3D transformations and quaternions:
+
+* `Transforms3d <https://pypi.python.org/pypi/transforms3d>`_
+   includes most code of this module.
+* `Blender.mathutils <http://www.blender.org/api/blender_python_api>`_
+* `numpy-dtypes <https://github.com/numpy/numpy-dtypes>`_
 
 References
 ----------
@@ -192,9 +201,9 @@ import math
 
 import numpy
 
-__version__ = '2013.06.29'
+__version__ = '2015.07.18'
 __docformat__ = 'restructuredtext en'
-__all__ = []
+__all__ = ()
 
 
 def identity_matrix():
@@ -661,7 +670,7 @@ def shear_matrix(angle, direction, point, normal):
     normal = unit_vector(normal[:3])
     direction = unit_vector(direction[:3])
     if abs(numpy.dot(normal, direction)) > 1e-6:
-        raise ValueError("direction and normal vectors are not orthogonal, diff is %f" % abs(numpy.dot(normal, direction)))
+        raise ValueError("direction and normal vectors are not orthogonal")
     angle = math.tan(angle)
     M = numpy.identity(4)
     M[:3, :3] += angle * numpy.outer(direction, normal)
@@ -1301,6 +1310,10 @@ def quaternion_from_matrix(matrix, isprecise=False):
     >>> q = quaternion_from_matrix(R)
     >>> is_same_transform(R, quaternion_matrix(q))
     True
+    >>> R = euler_matrix(0.0, 0.0, numpy.pi/2.0)
+    >>> numpy.allclose(quaternion_from_matrix(R, isprecise=False),
+    ...                quaternion_from_matrix(R, isprecise=True))
+    True
 
     """
     M = numpy.array(matrix, dtype=numpy.float64, copy=False)[:4, :4]
@@ -1851,19 +1864,6 @@ def concatenate_matrices(*matrices):
     return M
 
 
-def apply_transform(matrix, points):
-    """Return 3D cartesian points after applying transform.
-
-    The points are converted to 3D Homogeneous, the transformation
-    is applied, and then they are converted back to Cartesian"""
-    if points.shape[0] != 3:
-        raise ValueError("points must be 3xN")
-    points = numpy.vstack([points, numpy.ones((1, points.shape[1]))])
-    tformed_points = numpy.dot(matrix, points)
-    tformed_points = tformed_points[:3, :] / tformed_points[3, :]
-    return tformed_points
-
-
 def is_same_transform(matrix0, matrix1):
     """Return True if two matrices perform same transformation.
 
@@ -1912,12 +1912,11 @@ def _import_module(name, package=None, warn=True, prefix='_py_', ignore='_'):
         return True
 
 
-# print("about to do import_module, id(inverse_matrix) = %x" % id(inverse_matrix))
-_import_module('transformations._transformations')
-# print("after done import_module, id(inverse_matrix) = %x" % id(inverse_matrix))
+_import_module('_transformations')
 
 if __name__ == "__main__":
     import doctest
     import random  # used in doctests
     numpy.set_printoptions(suppress=True, precision=5)
     doctest.testmod()
+
